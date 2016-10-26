@@ -71,7 +71,7 @@ module Her
       #
       # @private
       def method_missing(method, *args, &blk)
-        if method.to_s =~ /[?=]$/ || @attributes.include?(method)
+        if attribute_method?(method)
           # Extract the attribute
           attribute = method.to_s.sub(/[?=]$/, '')
 
@@ -87,7 +87,17 @@ module Her
 
       # @private
       def respond_to_missing?(method, include_private = false)
-        method.to_s.end_with?('=') || method.to_s.end_with?('?') || @attributes.include?(method) || super
+        attribute_method?(method) || super
+      end
+
+      # @private
+      def attribute_method?(method)
+        base_name = if method.to_s =~ /[?=]$/
+          method[0..-2]
+        else
+          method
+        end
+        @attributes.include?(base_name)
       end
 
       # Assign new attributes to a resource
