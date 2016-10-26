@@ -24,7 +24,7 @@ module Her
             end
 
             def #{name}=(value)
-              raise "AssociationTypeMismatch: #{opts[:class_name]} expected, got " + value.class.name unless value.class.name == "#{opts[:class_name]}"
+              raise "AssociationTypeMismatch: #{opts[:class_name]} expected, got \#{value.class.name}" unless value.class.name == "#{opts[:class_name]}"
               cached_name = :"@_her_association_#{name}"
 
               if value.persisted?
