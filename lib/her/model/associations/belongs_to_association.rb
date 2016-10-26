@@ -22,6 +22,18 @@ module Her
               cached_data = (instance_variable_defined?(cached_name) && instance_variable_get(cached_name))
               cached_data || instance_variable_set(cached_name, Her::Model::Associations::BelongsToAssociation.proxy(self, #{opts.inspect}))
             end
+
+            def #{name}=(value)
+              raise "AssociationTypeMismatch: #{opts[:class_name]} expected, got " + value.class.name unless value.class.name == "#{opts[:class_name]}"
+              cached_name = :"@_her_association_#{name}"
+
+              if value.persisted?
+                send("#{opts[:foreign_key]}=", value.id)
+                instance_variable_set(cached_name, nil)
+              else
+                raise "Still needs to be implemented"
+              end
+            end
           RUBY
         end
 
