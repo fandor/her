@@ -34,6 +34,9 @@ module Her
                   end
                 end
               }
+              attrs.select {|key, value| nested_attributes_accepted_for?(key)}.each do |key, value|
+                attrs["#{key}_attributes"] = attrs.delete(key).map {|object| object.attributes }
+              end
               request_body[:id] = attrs.delete(:id) if attrs[:id]
               request_body[:attributes] = attrs
             }
