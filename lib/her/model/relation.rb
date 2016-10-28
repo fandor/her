@@ -6,11 +6,7 @@ module Her
 
       # @private
       def initialize(parent)
-        # Rails.logger.debug("***********************************")
-        # Rails.logger.debug("Her:Model:Relation: parent: #{parent.inspect}")
-        # @parent = parent
         @parent = parent.to_s.demodulize.constantize
-        # Rails.logger.debug("Her:Model:Relation: @parent: #{@parent.inspect}")
         @params = {}
       end
 
