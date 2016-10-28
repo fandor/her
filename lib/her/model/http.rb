@@ -53,7 +53,13 @@ module Her
         #
         # @private
         def request(params={})
+          # Rails.logger.debug("***********************************")
+          # Rails.logger.debug("Her:Model:HTTP: request: her_api: #{her_api.inspect}")
+          # Rails.logger.debug("Her:Model:HTTP: request: params: #{params.inspect}")
+          # Rails.logger.debug("Her:Model:HTTP: request: $film_client_api: #{$film_client_api.inspect}")
+          # Rails.logger.debug("Her:Model:HTTP: request: superclass: #{superclass.inspect}")
           request = her_api.request(params)
+          # request = $film_client_api.request(params)
 
           if block_given?
             yield request[:parsed_data], request[:response]
