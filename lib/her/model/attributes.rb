@@ -4,6 +4,9 @@ module Her
     module Attributes
       extend ActiveSupport::Concern
 
+
+      # attr_reader :errors
+
       # Initialize a new object with data
       #
       # @param [Hash] attributes The attributes to initialize the object with
@@ -18,15 +21,20 @@ module Her
       #
       #  User.new(name: "Tobias") # => #<User name="Tobias">
       def initialize(attributes={})
+        # puts "HER Attributes class: #{self.class.name}"
+        # puts "HER Attributes initialize attributes: #{attributes}"
+
         attributes ||= {}
-        @metadata = attributes.delete(:_metadata) || {}
+        @metadata        = attributes.delete(:_metadata) || {}
         @response_errors = attributes.delete(:_errors) || {}
-        @destroyed = attributes.delete(:_destroyed) || false
+        @destroyed       = attributes.delete(:_destroyed) || false
 
         attributes = self.class.default_scope.apply_to(attributes)
         assign_attributes(attributes)
+
         run_callbacks :initialize
       end
+
 
       # Initialize a collection of resources
       #
@@ -144,6 +152,7 @@ module Her
 
       # Return the value of the model `primary_key` attribute
       def id
+        # puts "**** id: #{@attributes[self.class.primary_key]}"
         @attributes[self.class.primary_key]
       end
 
@@ -197,8 +206,13 @@ module Her
         #
         # @private
         def new_from_parsed_data(parsed_data)
+          # puts "*** new_from_parsed_data parsed_data: #{parsed_data}"
           parsed_data = parsed_data.with_indifferent_access
-          new(parse(parsed_data[:data]).merge :_metadata => parsed_data[:metadata], :_errors => parsed_data[:errors])
+          item = new(parse(parsed_data[:data]).merge :_metadata => parsed_data[:metadata], :_errors => parsed_data[:errors])
+          # puts "*** new_from_parsed_data item.id: #{item.id}"
+          item.id = nil if parsed_data[:data][:id] == ""
+          # puts "*** new_from_parsed_data item.id: #{item.id}"
+          item
         end
 
         # Define attribute method matchers to automatically define them using ActiveModel's define_attribute_methods.
