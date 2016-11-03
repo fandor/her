@@ -50,9 +50,14 @@ module Her
           return @cached_result unless @params.any? || @cached_result.nil?
           return @parent.attributes[@name] unless @params.any? || @parent.attributes[@name].blank?
 
-          path = build_association_path lambda { "#{@parent.request_path(@params)}#{@opts[:path]}" }
-          @klass.get(path, @params).tap do |result|
-            @cached_result = result unless @params.any?
+          if @parent.persisted?
+            path = build_association_path lambda { "#{@parent.request_path(@params)}#{@opts[:path]}" }
+            @klass.get(path, @params).tap do |result|
+              @cached_result = result unless @params.any?
+            end
+          else
+            # Her::Model::Attributes.initialize_collection(self, [])
+            @cached_result = []
           end
         end
 

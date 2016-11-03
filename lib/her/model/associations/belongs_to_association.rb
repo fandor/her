@@ -30,8 +30,6 @@ module Her
               if value.persisted?
                 send("#{opts[:foreign_key]}=", value.id)
                 instance_variable_set(cached_name, nil)
-              else
-                raise "Still needs to be implemented"
               end
             end
           RUBY

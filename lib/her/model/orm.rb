@@ -42,11 +42,39 @@ module Her
         run_callbacks callback do
           run_callbacks :save do
             self.class.request(to_params.merge(:_method => method, :_path => request_path)) do |parsed_data, response|
+
+              puts "HER SAVE parsed_data: #{parsed_data}"
+              puts "HER SAVE response: #{response.inspect}"
+
+              validation_errors = parsed_data[:data].delete(:errors)
+              puts "HER SAVE validation_errors: #{validation_errors.inspect}"
+
               assign_attributes(self.class.parse(parsed_data[:data])) if parsed_data[:data].any?
               @metadata = parsed_data[:metadata]
               @response_errors = parsed_data[:errors]
 
-              return false if !response.success? || @response_errors.any?
+              puts "HER SAVE response.success?: #{response.success?}"
+              puts "HER SAVE @response_errors: #{@response_errors.inspect}"
+
+              # return false if !response.success? || @response_errors.any?
+              if @response_errors.any? #|| !response.success?
+                return false
+              end
+
+              if validation_errors
+                ## add any model validation errors from the service_response
+                validation_errors.each do |attribute, error_array|
+
+                  # puts "HER SAVE validation_errors attribute: #{attribute}"
+                  # puts "HER SAVE validation_errors error_array: #{error_array}"
+
+                  error_array.each do |error|
+                    self.errors.add(attribute, error)
+                  end
+                end
+                return false
+              end
+
               if self.changed_attributes.present?
                 @previously_changed = self.changed_attributes.clone
                 self.changed_attributes.clear
@@ -180,6 +208,10 @@ module Her
         # Build a new resource with the given attributes.
         # If the request_new_object_on_build flag is set, the new object is requested via API.
         def build(attributes = {})
+
+          # puts "HER ORM class: #{self.name}"
+          # puts "HER ORM build attributes: #{attributes}"
+
           params = attributes
           return self.new(params) unless self.request_new_object_on_build?
 
