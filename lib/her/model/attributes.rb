@@ -5,8 +5,6 @@ module Her
       extend ActiveSupport::Concern
 
 
-      # attr_reader :errors
-
       # Initialize a new object with data
       #
       # @param [Hash] attributes The attributes to initialize the object with
@@ -23,7 +21,6 @@ module Her
       def initialize(attributes={})
         # puts "HER Attributes class: #{self.class.name}"
         # puts "HER Attributes initialize attributes: #{attributes}"
-
         attributes ||= {}
         @metadata        = attributes.delete(:_metadata) || {}
         @response_errors = attributes.delete(:_errors) || {}
@@ -40,6 +37,8 @@ module Her
       #
       # @private
       def self.initialize_collection(klass, parsed_data={})
+        # puts "**** Her::Model::Attributes initialize_collection klass: #{klass.inspect}"
+        # puts "**** Her::Model::Attributes initialize_collection parsed_data: #{parsed_data}"
         collection_data = klass.extract_array(parsed_data).map do |item_data|
           if item_data.kind_of?(klass)
             resource = item_data
@@ -51,6 +50,50 @@ module Her
         end
         Her::Collection.new(collection_data, parsed_data[:metadata], parsed_data[:errors])
       end
+
+
+      # Initialize a paginated collection of resources
+      #
+      # @private
+      def self.initialize_paginated_collection(klass, parsed_data={}, params={}, response=nil)
+        # puts "**** Her::Model::Attributes initialize_paginated_collection klass: #{klass.inspect}"
+        # puts "**** Her::Model::Attributes initialize_paginated_collection parsed_data: #{parsed_data}"
+        # puts "**** Her::Model::Attributes initialize_paginated_collection params: #{params}"
+        # puts "**** Her::Model::Attributes initialize_paginated_collection response: #{response.inspect}"
+
+        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection klass: #{klass.inspect}"
+        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection parsed_data: #{parsed_data}"
+        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection params: #{params}"
+        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection response: #{response.inspect}"
+
+        collection_data = klass.extract_array(parsed_data).map do |item_data|
+          # puts "**** Her::Model::Attributes initialize_paginated_collection item_data: #{item_data}"
+          if item_data.kind_of?(klass)
+            resource = item_data
+          else
+            resource = klass.new(klass.parse(item_data))
+            resource.run_callbacks :find
+          end
+          resource
+        end
+
+        # # puts "**** Her::Model::Attributes initialize_paginated_collection collection: #{collection.inspect}"
+        # puts "**** Her::Model::Attributes initialize_paginated_collection collection_data: #{collection_data.inspect}"
+
+        # # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection collection: #{collection.inspect}"
+        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection collection_data: #{collection_data.inspect}"
+
+        per_page = params['page[size]'] && params['page[size]'].to_i || 20
+        current_page = params['page[number]'] && params['page[number]'].to_i || 1
+
+        Her::PaginatedCollection.new(items: collection_data,
+                                     metadata: parsed_data[:metadata],
+                                     errors: parsed_data[:errors],
+                                     links: parsed_data.links,
+                                     current_page: current_page,
+                                     per_page: per_page)
+      end
+
 
       # Use setter methods of model for each key / value pair in params
       # Return key / value pairs for which no setter method was defined on the model
@@ -202,11 +245,22 @@ module Her
           Her::Model::Attributes.initialize_collection(self, parsed_data)
         end
 
+
+        # Initialize a paginated collection of resources with raw data from an HTTP request
+        #
+        # @param [Array] parsed_data
+        # @private
+        def new_paginated_collection(parsed_data, params, response)
+          Her::Model::Attributes.initialize_paginated_collection(self, parsed_data, params, response)
+        end
+
+
         # Initialize a new object with the "raw" parsed_data from the parsing middleware
         #
         # @private
         def new_from_parsed_data(parsed_data)
           # puts "*** new_from_parsed_data parsed_data: #{parsed_data}"
+
           parsed_data = parsed_data.with_indifferent_access
           item = new(parse(parsed_data[:data]).merge :_metadata => parsed_data[:metadata], :_errors => parsed_data[:errors])
           # puts "*** new_from_parsed_data item.id: #{item.id}"

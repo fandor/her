@@ -43,21 +43,26 @@ module Her
           run_callbacks :save do
             self.class.request(to_params.merge(:_method => method, :_path => request_path)) do |parsed_data, response|
 
-              # puts "HER SAVE parsed_data: #{parsed_data}"
-              # puts "HER SAVE response: #{response.inspect}"
+              # puts "*** HER SAVE parsed_data: #{parsed_data}"
+              # Rails.logger.debug "*** HER SAVE parsed_data: #{parsed_data}"
+              # puts "*** HER SAVE response: #{response.inspect}"
+              # Rails.logger.debug "*** HER SAVE response: #{response.inspect}"
 
               validation_errors = parsed_data[:data].delete(:errors)
               # puts "HER SAVE validation_errors: #{validation_errors.inspect}"
+              # Rails.logger.debug "**** HER SAVE validation_errors: #{validation_errors.inspect}"
 
               assign_attributes(self.class.parse(parsed_data[:data])) if parsed_data[:data].any?
               @metadata = parsed_data[:metadata]
               @response_errors = parsed_data[:errors]
 
-              # puts "HER SAVE response.success?: #{response.success?}"
-              # puts "HER SAVE @response_errors: #{@response_errors.inspect}"
+              # puts "**** HER SAVE response.success?: #{response.success?}"
+              # Rails.logger.debug "**** HER SAVE response.success?: #{response.success?}"
+              # puts "**** HER SAVE @response_errors: #{@response_errors.inspect}"
+              # Rails.logger.debug "**** HER SAVE @response_errors: #{@response_errors.inspect}"
 
               # return false if !response.success? || @response_errors.any?
-              if @response_errors.any? #|| !response.success?
+              if !@response_errors.nil? && @response_errors.any? #|| !response.success?
                 return false
               end
 
@@ -110,7 +115,13 @@ module Her
         method = self.class.method_for(:destroy)
         run_callbacks :destroy do
           self.class.request(params.merge(:_method => method, :_path => request_path)) do |parsed_data, response|
-            assign_attributes(self.class.parse(parsed_data[:data])) if parsed_data[:data].any?
+
+            # puts "*** HER DESTROY parsed_data: #{parsed_data}"
+            # Rails.logger.debug "*** HER DESTROY parsed_data: #{parsed_data}"
+            # puts "*** HER DESTROY response: #{response.inspect}"
+            # Rails.logger.debug "*** HER DESTROY response: #{response.inspect}"
+
+            assign_attributes(self.class.parse(parsed_data[:data])) if !parsed_data[:data].nil? && parsed_data[:data].any?
             @metadata = parsed_data[:metadata]
             @response_errors = parsed_data[:errors]
             @destroyed = true
