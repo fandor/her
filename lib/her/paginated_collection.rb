@@ -71,7 +71,7 @@ module Her
     end
 
     # Collection methods
-    delegate :<<, :each, :size, :to_ary, :to_a, to: :items
+    delegate :<<, :each, :size, :to_ary, :to_a, :sort_by!, to: :items
 
     private
 
