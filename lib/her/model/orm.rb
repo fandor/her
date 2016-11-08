@@ -95,11 +95,18 @@ module Her
                   # Rails.logger.debug "*** VALIDATION matchdata: #{matchdata.inspect}"
 
                   if matchdata
+                    association_name = matchdata[1]
+                    item_has_id = v['id'] && v['id'] != ''
+                    item_deleted = v['_destroy'] == "1"
                     # Rails.logger.debug "*** VALIDATION matchdata[1]: #{matchdata[1]}"
                     value.each do |k, v|
                       # Rails.logger.debug "*** VALIDATION matchdata value_each: #{v.inspect}"
-                      unless (v['id'] && v['id'] != '') || (v['_destroy'] == "1")
-                        self.send(matchdata[1]).send(:<<, matchdata[1].classify.constantize.send(:build, v))
+                      unless item_has_id || item_deleted
+                        self.send(association_name).send(:<<, association_name.classify.constantize.send(:build, v))
+                      end
+
+                      if item_has_id && item_deleted
+                        self.send(association_name).detect {|item| item.id.to_i == v['id'].to_i}._destroy = true
                       end
                       # Rails.logger.debug "*** VALIDATION SELF self.send(matchdata[1]): #{ self.send(matchdata[1]) }"
                     end
