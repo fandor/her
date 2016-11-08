@@ -41,8 +41,11 @@ module Her
 
         run_callbacks callback do
           run_callbacks :save do
+            submitted_params = to_params
             self.class.request(to_params.merge(:_method => method, :_path => request_path)) do |parsed_data, response|
 
+              # puts "*** HER SAVE submitted_params: #{submitted_params}"
+              # Rails.logger.debug "*** HER SAVE submitted_params: #{submitted_params}"
               # puts "*** HER SAVE parsed_data: #{parsed_data}"
               # Rails.logger.debug "*** HER SAVE parsed_data: #{parsed_data}"
               # puts "*** HER SAVE response: #{response.inspect}"
@@ -53,6 +56,7 @@ module Her
               # Rails.logger.debug "**** HER SAVE validation_errors: #{validation_errors.inspect}"
 
               assign_attributes(self.class.parse(parsed_data[:data])) if parsed_data[:data].any?
+
               @metadata = parsed_data[:metadata]
               @response_errors = parsed_data[:errors]
 
@@ -75,14 +79,31 @@ module Her
               if validation_errors
                 ## add any model validation errors from the service_response
                 validation_errors.each do |attribute, error_array|
-
                   # puts "HER SAVE validation_errors attribute: #{attribute}"
                   # puts "HER SAVE validation_errors error_array: #{error_array}"
-
                   error_array.each do |error|
                     self.errors.add(attribute, error)
                   end
                 end
+
+                submitted_params[:data][:attributes].each do |key, value|
+                  # Rails.logger.debug "*** VALIDATION key: #{key}"
+                  # Rails.logger.debug "*** VALIDATION value: #{value}"
+
+                  # matchdata = key.match(/(.*)_attributes/)
+                  matchdata = /(.*)_attributes/.match(key)
+                  # Rails.logger.debug "*** VALIDATION matchdata: #{matchdata.inspect}"
+
+                  if matchdata
+                    # Rails.logger.debug "*** VALIDATION matchdata[1]: #{matchdata[1]}"
+                    value.each do |k, v|
+                      # Rails.logger.debug "*** VALIDATION matchdata value_each: #{v.inspect}"
+                      self.send(matchdata[1]).send(:<<, matchdata[1].classify.constantize.send(:build, v)) unless v['_destroy'] == "1"
+                      # Rails.logger.debug "*** VALIDATION SELF self.send(matchdata[1]): #{ self.send(matchdata[1]) }"
+                    end
+                  end
+                end
+
                 return false
               end
 
