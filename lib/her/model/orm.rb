@@ -21,6 +21,7 @@ module Her
         @destroyed == true
       end
 
+      # Support form_for with _destroy
       def _destroy
         @destroy ||= false
       end
@@ -98,8 +99,8 @@ module Her
                 ## Since there were validation errors, reattach to the object any associated items
                 ## that were new (non-persisted), and re-mark any that were marked for delete with _destroy
                 submitted_params[:data][:attributes].each do |key, value|
+                  ## get nested_attributes, if any
                   matchdata = /(.*)_attributes/.match(key)
-
                   if matchdata
                     association_name = matchdata[1]
 
@@ -107,10 +108,12 @@ module Her
                       item_has_id = v['id'] && v['id'] != ''
                       item_deleted = v['_destroy'] == "1"
 
+                      ## Reattach non-persisted items
                       unless item_has_id || item_deleted
                         self.send(association_name).send(:<<, association_name.classify.constantize.send(:build, v))
                       end
 
+                      ## Re-mark items with _destroy if they were marked for deletion
                       if item_has_id && item_deleted
                         self.send(association_name).detect {|item| item.id.to_i == v['id'].to_i}._destroy = true
                       end
