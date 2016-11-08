@@ -21,6 +21,14 @@ module Her
         @destroyed == true
       end
 
+      def _destroy
+        @destroy ||= false
+      end
+
+      def _destroy=(value)
+        @destroy = !!value
+      end
+
       # Save a resource and return `false` if the response is not a successful one or
       # if there are errors in the resource. Otherwise, return the newly updated resource
       #
@@ -87,20 +95,15 @@ module Her
                 end
 
                 submitted_params[:data][:attributes].each do |key, value|
-                  # Rails.logger.debug "*** VALIDATION key: #{key}"
-                  # Rails.logger.debug "*** VALIDATION value: #{value}"
-
-                  # matchdata = key.match(/(.*)_attributes/)
                   matchdata = /(.*)_attributes/.match(key)
-                  # Rails.logger.debug "*** VALIDATION matchdata: #{matchdata.inspect}"
 
                   if matchdata
                     association_name = matchdata[1]
-                    item_has_id = v['id'] && v['id'] != ''
-                    item_deleted = v['_destroy'] == "1"
-                    # Rails.logger.debug "*** VALIDATION matchdata[1]: #{matchdata[1]}"
+
                     value.each do |k, v|
-                      # Rails.logger.debug "*** VALIDATION matchdata value_each: #{v.inspect}"
+                      item_has_id = v['id'] && v['id'] != ''
+                      item_deleted = v['_destroy'] == "1"
+
                       unless item_has_id || item_deleted
                         self.send(association_name).send(:<<, association_name.classify.constantize.send(:build, v))
                       end
@@ -108,7 +111,6 @@ module Her
                       if item_has_id && item_deleted
                         self.send(association_name).detect {|item| item.id.to_i == v['id'].to_i}._destroy = true
                       end
-                      # Rails.logger.debug "*** VALIDATION SELF self.send(matchdata[1]): #{ self.send(matchdata[1]) }"
                     end
                   end
                 end
