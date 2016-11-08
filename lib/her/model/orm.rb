@@ -73,27 +73,32 @@ module Her
               # puts "**** HER SAVE @response_errors: #{@response_errors.inspect}"
               # Rails.logger.debug "**** HER SAVE @response_errors: #{@response_errors.inspect}"
 
-              # return false if !response.success? || @response_errors.any?
-              if !@response_errors.nil? && @response_errors.any? #|| !response.success?
+              ## If the respose itself has errors, there was an issue with the service api call
+              ## and so return false (ie, stack trace on the service, etc)
+              if !@response_errors.nil? && @response_errors.any?
                 return false
               end
 
+              ## 422 statuses are validation responses from the service
+              ## meaning the response was successful, but the item was unprocessable
+              ## and contains validation errors.
+              ## Anything besides 422 is a true response failure.
               if !response.success?
-                if response.status != 422 # 422 statuses are validation responses from the service
+                if response.status != 422
                   return false
                 end
               end
 
+              ## If there are validation errors, add any model validation errors from the service_response
               if validation_errors
-                ## add any model validation errors from the service_response
                 validation_errors.each do |attribute, error_array|
-                  # puts "HER SAVE validation_errors attribute: #{attribute}"
-                  # puts "HER SAVE validation_errors error_array: #{error_array}"
                   error_array.each do |error|
                     self.errors.add(attribute, error)
                   end
                 end
 
+                ## Since there were validation errors, reattach to the object any associated items
+                ## that were new (non-persisted), and re-mark any that were marked for delete with _destroy
                 submitted_params[:data][:attributes].each do |key, value|
                   matchdata = /(.*)_attributes/.match(key)
 
@@ -114,10 +119,11 @@ module Her
                     end
                   end
                 end
-
+                ## Obj was not saved, so return false
                 return false
               end
 
+              ## Obj was successfully saved, clear up attributes
               if self.changed_attributes.present?
                 @previously_changed = self.changed_attributes.clone
                 self.changed_attributes.clear
@@ -126,6 +132,7 @@ module Her
           end
         end
 
+        ##
         self
       end
 
