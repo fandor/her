@@ -83,10 +83,8 @@ module Her
               ## meaning the response was successful, but the item was unprocessable
               ## and contains validation errors.
               ## Anything besides 422 is a true response failure.
-              if !response.success?
-                if response.status != 422
-                  return false
-                end
+              if !response.success? && response.status != 422
+                return false
               end
 
               ## If there are validation errors, add any model validation errors from the service_response
