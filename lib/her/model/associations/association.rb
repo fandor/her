@@ -51,7 +51,10 @@ module Her
           return @parent.attributes[@name] unless @params.any? || @parent.attributes[@name].blank?
 
           if @parent.persisted?
-            path = build_association_path lambda { "#{@parent.request_path(@params)}#{@opts[:path]}" }
+            associated_class = @name.to_s.classify.safe_constantize
+            associated_path = associated_class ? "/#{associated_class.collection_path}" : @opts[:path]
+
+            path = build_association_path lambda { "#{@parent.request_path(@params)}#{associated_path}" }
             @klass.get(path, @params).tap do |result|
               @cached_result = result unless @params.any?
             end
