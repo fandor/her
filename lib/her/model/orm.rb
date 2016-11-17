@@ -54,11 +54,11 @@ module Her
             self.class.request(to_params.merge(:_method => method, :_path => request_path)) do |parsed_data, response|
 
               # puts "*** HER SAVE submitted_params: #{submitted_params}"
-              # Rails.logger.debug "*** HER SAVE submitted_params: #{submitted_params}"
+              Rails.logger.debug "*** HER SAVE submitted_params: #{submitted_params}"
               # puts "*** HER SAVE parsed_data: #{parsed_data}"
-              # Rails.logger.debug "*** HER SAVE parsed_data: #{parsed_data}"
+              Rails.logger.debug "*** HER SAVE parsed_data: #{parsed_data}"
               # puts "*** HER SAVE response: #{response.inspect}"
-              # Rails.logger.debug "*** HER SAVE response: #{response.inspect}"
+              Rails.logger.debug "*** HER SAVE response: #{response.inspect}"
 
               validation_errors = parsed_data[:data].delete(:errors)
               # puts "HER SAVE validation_errors: #{validation_errors.inspect}"
@@ -70,9 +70,9 @@ module Her
               @response_errors = parsed_data[:errors]
 
               # puts "**** HER SAVE response.success?: #{response.success?}"
-              # Rails.logger.debug "**** HER SAVE response.success?: #{response.success?}"
+              Rails.logger.debug "**** HER SAVE response.success?: #{response.success?}"
               # puts "**** HER SAVE @response_errors: #{@response_errors.inspect}"
-              # Rails.logger.debug "**** HER SAVE @response_errors: #{@response_errors.inspect}"
+              Rails.logger.debug "**** HER SAVE @response_errors: #{@response_errors.inspect}"
 
               ## If the respose itself has errors, there was an issue with the service api call
               ## and so return false (ie, stack trace on the service, etc)
@@ -109,8 +109,13 @@ module Her
                       item_deleted = v['_destroy'] == "1"
 
                       ## Reattach non-persisted items
-                      unless item_has_id || item_deleted
+                      if !item_has_id && !item_deleted
                         self.send(association_name).send(:<<, association_name.classify.constantize.send(:build, v))
+                      end
+
+                      ## Re-Apply any changes to attributes on persisted items
+                      if item_has_id && !item_deleted
+                        self.send(association_name).detect {|item| item.id.to_i == v['id'].to_i}.assign_attributes(v)
                       end
 
                       ## Re-mark items with _destroy if they were marked for deletion
