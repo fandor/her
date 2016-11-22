@@ -103,6 +103,7 @@ module Her
                   matchdata = /(.*)_attributes/.match(key)
                   if matchdata
                     association_name = matchdata[1]
+                    association_type = self.class.associations.detect {|type, list| list.any? {|a| a[:name].to_s == association_name}}.try(:first)
 
                     value.each do |k, v|
                       item_has_id = v['id'] && v['id'] != ''
@@ -110,17 +111,29 @@ module Her
 
                       ## Reattach non-persisted items
                       if !item_has_id && !item_deleted
-                        self.send(association_name).send(:<<, association_name.classify.constantize.send(:build, v))
+                        item = association_name.classify.constantize.send(:build, v)
+                        if association_type == :has_many
+                          self.send(association_name).send(:<<, item)
+                        else
+                          self.send("#{association_name}=", item)
+                        end
                       end
 
                       ## Re-Apply any changes to attributes on persisted items
-                      if item_has_id && !item_deleted
-                        self.send(association_name).detect {|item| item.id.to_i == v['id'].to_i}.assign_attributes(v)
-                      end
+                      if item_has_id
+                        item = if association_type == :has_many
+                          self.send(association_name).detect {|item| item.id.to_i == v['id'].to_i}
+                        else
+                          self.send(association_name)
+                        end
 
-                      ## Re-mark items with _destroy if they were marked for deletion
-                      if item_has_id && item_deleted
-                        self.send(association_name).detect {|item| item.id.to_i == v['id'].to_i}._destroy = true
+                        if item_deleted
+                          ## Re-mark items with _destroy if they were marked for deletion
+                          item._destroy = true
+                        else
+                          ## Not deleted, re-apply attribute changes
+                          item.assign_attributes(v)
+                        end
                       end
                     end
                   end

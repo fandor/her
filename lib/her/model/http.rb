@@ -70,6 +70,8 @@ module Her
               send(:'#{method}_raw', path, params) do |parsed_data, response|
                 if parsed_data[:data].is_a?(Array) || active_model_serializers_format? || json_api_format?
                   new_collection(parsed_data)
+                elsif parsed_data[:data].nil?
+                  nil
                 else
                   new(parse(parsed_data[:data]).merge :_metadata => parsed_data[:metadata], :_errors => parsed_data[:errors])
                 end
