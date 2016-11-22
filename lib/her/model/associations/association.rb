@@ -56,8 +56,13 @@ module Her
               @cached_result = result unless @params.any?
             end
           else
-            # Her::Model::Attributes.initialize_collection(self, [])
-            @cached_result = []
+            # Association info is stored in a hash available from the class (associations)
+            # The keys of the associations hash are the association types
+            # The values of the hash are arrays of hashes
+            # Find the key that points to the array containing the association identified by @name
+            association_type = @parent.class.associations.detect {|type, list| list.any? {|a| a[:name].to_s == @name.to_s}}.try(:first)
+
+            @cached_result = association_type == :has_many ? [] : nil
           end
         end
 
