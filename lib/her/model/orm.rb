@@ -103,6 +103,10 @@ module Her
                   matchdata = /(.*)_attributes/.match(key)
                   if matchdata
                     association_name = matchdata[1]
+                    # Association info is stored in a hash available from the class (associations)
+                    # The keys of the associations hash are the association types
+                    # The values of the hash are arrays of hashes
+                    # Find the key that points to the array containing the association identified by association_name
                     association_type = self.class.associations.detect {|type, list| list.any? {|a| a[:name].to_s == association_name}}.try(:first)
 
                     value.each do |k, v|
