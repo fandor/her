@@ -6,7 +6,7 @@ module Her
 
       # @private
       def initialize(parent)
-        @parent = parent.to_s.demodulize.constantize
+        @parent = parent
         @params = {}
       end
 
@@ -64,8 +64,8 @@ module Her
       #
       # @private
       def fetch
-        # Rails.logger.debug "**** Her::Model::Relation fetch"
-        # Rails.logger.debug "**** Her::Model::Relation fetch @params: #{@params}"
+        Rails.logger.debug "**** Her::Model::Relation fetch"
+        Rails.logger.debug "**** Her::Model::Relation fetch @params: #{@params}"
 
         @_fetch ||= begin
           path = @parent.build_request_path(@params)
