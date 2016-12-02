@@ -56,16 +56,6 @@ module Her
       #
       # @private
       def self.initialize_paginated_collection(klass, parsed_data={}, params={}, response=nil)
-        # puts "**** Her::Model::Attributes initialize_paginated_collection klass: #{klass.inspect}"
-        # puts "**** Her::Model::Attributes initialize_paginated_collection parsed_data: #{parsed_data}"
-        # puts "**** Her::Model::Attributes initialize_paginated_collection params: #{params}"
-        # puts "**** Her::Model::Attributes initialize_paginated_collection response: #{response.inspect}"
-
-        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection klass: #{klass.inspect}"
-        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection parsed_data: #{parsed_data}"
-        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection params: #{params}"
-        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection response: #{response.inspect}"
-
         collection_data = klass.extract_array(parsed_data).map do |item_data|
           # puts "**** Her::Model::Attributes initialize_paginated_collection item_data: #{item_data}"
           if item_data.kind_of?(klass)
@@ -76,12 +66,6 @@ module Her
           end
           resource
         end
-
-        # # puts "**** Her::Model::Attributes initialize_paginated_collection collection: #{collection.inspect}"
-        # puts "**** Her::Model::Attributes initialize_paginated_collection collection_data: #{collection_data.inspect}"
-
-        # # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection collection: #{collection.inspect}"
-        # Rails.logger.debug "**** Her::Model::Attributes initialize_paginated_collection collection_data: #{collection_data.inspect}"
 
         per_page = params['page[size]'] && params['page[size]'].to_i || 20
         current_page = params['page[number]'] && params['page[number]'].to_i || 1

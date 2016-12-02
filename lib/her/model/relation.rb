@@ -64,9 +64,6 @@ module Her
       #
       # @private
       def fetch
-        Rails.logger.debug "**** Her::Model::Relation fetch"
-        Rails.logger.debug "**** Her::Model::Relation fetch @params: #{@params}"
-
         @_fetch ||= begin
           path = @parent.build_request_path(@params)
           method = @parent.method_for(:find)
@@ -76,23 +73,13 @@ module Her
           @params = @params.transform_keys {|key| pagination_param_map[key.to_s] || key }
 
           @parent.request(@params.merge(:_method => method, :_path => path)) do |parsed_data, response|
-
-            # Rails.logger.debug "**** Her::Model::Relation @parent: #{@parent}"
-            # Rails.logger.debug "**** Her::Model::Relation @params: #{@params}"
-            # Rails.logger.debug "**** Her::Model::Relation response: #{response.inspect}"
-            # Rails.logger.debug "**** Her::Model::Relation parsed_data: #{parsed_data}"
-            # Rails.logger.debug "**** Her::Model::Relation LINKS: #{parsed_data.links}"
-
-            # Rails.logger.debug "**** Her::Model::Relation LINKS: parsed_data.links.nil? #{parsed_data.links.nil?}"
-            # Rails.logger.debug "**** Her::Model::Relation LINKS: parsed_data.links.size #{parsed_data.links.size}"
-
-            unless parsed_data.links.nil?
-              @parent.new_paginated_collection(parsed_data, @params, response)
-            else
+            if parsed_data.links.nil? # No links means no pagination
               @parent.new_collection(parsed_data)
+            else
+              @parent.new_paginated_collection(parsed_data, @params, response)
             end
-
           end
+
         end
       end
 

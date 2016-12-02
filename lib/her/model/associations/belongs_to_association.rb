@@ -27,10 +27,9 @@ module Her
               raise "AssociationTypeMismatch: #{opts[:class_name]} expected, got \#{value.class.name}" unless #{!!opts[:polymorphic]} || value.class.name == "#{opts[:class_name]}"
               cached_name = :"@_her_association_#{name}"
 
-              if value.persisted?
-                send("#{opts[:foreign_key]}=", value.id)
-                instance_variable_set(cached_name, nil)
-              end
+              instance_variable_set(cached_name, value)
+              send("#{opts[:foreign_key]}=", value.id) if value.persisted?
+
             end
           RUBY
         end

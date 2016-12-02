@@ -6,14 +6,6 @@ module Her
     attr_reader :current_page, :per_page, :metadata, :errors
 
     def initialize(items: [], metadata: {}, errors: {}, links: {}, current_page:, per_page:)
-
-      # Rails.logger.debug "**** Her::PaginatedCollection initialize items: #{items}"
-      # Rails.logger.debug "**** Her::PaginatedCollection initialize metadata: #{metadata}"
-      # Rails.logger.debug "**** Her::PaginatedCollection initialize errors: #{errors}"
-      # Rails.logger.debug "**** Her::PaginatedCollection initialize links: #{links}"
-      # Rails.logger.debug "**** Her::PaginatedCollection initialize current_page: #{current_page}"
-      # Rails.logger.debug "**** Her::PaginatedCollection initialize per_page: #{per_page}"
-
       raise ArgumentError.new("current_page must be positive") if current_page < 1
       raise ArgumentError.new("per_page must be positive") if per_page < 1
 
