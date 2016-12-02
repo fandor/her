@@ -19,8 +19,6 @@ module Her
       #
       #  User.new(name: "Tobias") # => #<User name="Tobias">
       def initialize(attributes={})
-        # puts "HER Attributes class: #{self.class.name}"
-        # puts "HER Attributes initialize attributes: #{attributes}"
         attributes ||= {}
         @metadata        = attributes.delete(:_metadata) || {}
         @response_errors = attributes.delete(:_errors) || {}
@@ -37,8 +35,6 @@ module Her
       #
       # @private
       def self.initialize_collection(klass, parsed_data={})
-        # puts "**** Her::Model::Attributes initialize_collection klass: #{klass.inspect}"
-        # puts "**** Her::Model::Attributes initialize_collection parsed_data: #{parsed_data}"
         collection_data = klass.extract_array(parsed_data).map do |item_data|
           if item_data.kind_of?(klass)
             resource = item_data
@@ -57,7 +53,6 @@ module Her
       # @private
       def self.initialize_paginated_collection(klass, parsed_data={}, params={}, response=nil)
         collection_data = klass.extract_array(parsed_data).map do |item_data|
-          # puts "**** Her::Model::Attributes initialize_paginated_collection item_data: #{item_data}"
           if item_data.kind_of?(klass)
             resource = item_data
           else
@@ -179,7 +174,6 @@ module Her
 
       # Return the value of the model `primary_key` attribute
       def id
-        # puts "**** id: #{@attributes[self.class.primary_key]}"
         @attributes[self.class.primary_key]
       end
 
@@ -243,13 +237,9 @@ module Her
         #
         # @private
         def new_from_parsed_data(parsed_data)
-          # puts "*** new_from_parsed_data parsed_data: #{parsed_data}"
-
           parsed_data = parsed_data.with_indifferent_access
           item = new(parse(parsed_data[:data]).merge :_metadata => parsed_data[:metadata], :_errors => parsed_data[:errors])
-          # puts "*** new_from_parsed_data item.id: #{item.id}"
           item.id = nil if parsed_data[:data][:id] == ""
-          # puts "*** new_from_parsed_data item.id: #{item.id}"
           item
         end
 

@@ -267,10 +267,6 @@ module Her
         # Build a new resource with the given attributes.
         # If the request_new_object_on_build flag is set, the new object is requested via API.
         def build(attributes = {})
-
-          # puts "HER ORM class: #{self.name}"
-          # puts "HER ORM build attributes: #{attributes}"
-
           params = attributes
           return self.new(params) unless self.request_new_object_on_build?
 
