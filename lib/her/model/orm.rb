@@ -95,36 +95,12 @@ module Her
                     # Find the key that points to the array containing the association identified by association_name
                     association_type = self.class.associations.detect {|type, list| list.any? {|a| a[:name].to_s == association_name}}.try(:first)
 
-                    value.each do |k, v|
-                      item_has_id = v['id'] && v['id'] != ''
-                      item_deleted = v['_destroy'] == "1"
-
-                      ## Reattach non-persisted items
-                      if !item_has_id && !item_deleted
-                        item = association_name.classify.constantize.send(:build, v)
-                        if association_type == :has_many
-                          self.send(association_name).send(:<<, item)
-                        else
-                          self.send("#{association_name}=", item)
-                        end
+                    if association_type == :has_many
+                      value.each do |k, v|
+                        reapply_changes(attributes: v, association_name: association_name, association_type: association_type)
                       end
-
-                      ## Re-Apply any changes to attributes on persisted items
-                      if item_has_id
-                        item = if association_type == :has_many
-                          self.send(association_name).detect {|item| item.id.to_i == v['id'].to_i}
-                        else
-                          self.send(association_name)
-                        end
-
-                        if item_deleted
-                          ## Re-mark items with _destroy if they were marked for deletion
-                          item._destroy = true
-                        else
-                          ## Not deleted, re-apply attribute changes
-                          item.assign_attributes(v)
-                        end
-                      end
+                    else
+                      reapply_changes(attributes: value, association_name: association_name, association_type: association_type)
                     end
                   end
                 end
@@ -170,6 +146,37 @@ module Her
           end
         end
         self
+      end
+
+      def reapply_changes(attributes:, association_name:, association_type:)
+        item_has_id = attributes['id'] && attributes['id'] != ''
+        item_deleted = attributes['_destroy'] == "1"
+
+        if item_has_id
+          ## Re-Apply any changes to attributes on persisted items
+          item = if association_type == :has_many
+            self.send(association_name).detect {|item| item.id.to_i == attributes['id'].to_i}
+          else
+            self.send(association_name)
+          end
+
+          if item_deleted
+            ## Re-mark items with _destroy if they were marked for deletion
+            item._destroy = true
+          else
+            ## Not deleted, re-apply attribute changes
+            item.assign_attributes(attributes)
+          end
+        elsif !item_deleted
+          ## Reattach non-persisted items
+          item = association_name.classify.constantize.send(:build)
+          item.attributes = attributes
+          if association_type == :has_many
+            self.send(association_name).send(:<<, item)
+          else
+            self.send("#{association_name}=", item)
+          end
+        end
       end
 
       module ClassMethods
