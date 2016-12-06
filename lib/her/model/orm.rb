@@ -13,12 +13,21 @@ module Her
 
       # Return `true` if a resource is not `#new?`
       def persisted?
-        !new?
+        !new? && !destroyed?
       end
 
       # Return whether the object has been destroyed
       def destroyed?
         @destroyed == true
+      end
+
+      # Support form_for with _destroy
+      def _destroy
+        !!@destroy
+      end
+
+      def _destroy=(value)
+        @destroy = !!value
       end
 
       # Save a resource and return `false` if the response is not a successful one or
@@ -41,13 +50,65 @@ module Her
 
         run_callbacks callback do
           run_callbacks :save do
-            params = to_params
+            submitted_params = to_params
             self.class.request(to_params.merge(:_method => method, :_path => request_path)) do |parsed_data, response|
+
+              validation_errors = parsed_data[:data].delete(:errors)
+
               assign_attributes(self.class.parse(parsed_data[:data])) if parsed_data[:data].any?
+
               @metadata = parsed_data[:metadata]
               @response_errors = parsed_data[:errors]
 
-              return false if !response.success? || @response_errors.any?
+              ## If the respose itself has errors, there was an issue with the service api call
+              ## and so return false (ie, stack trace on the service, etc)
+              if !@response_errors.nil? && @response_errors.any?
+                return false
+              end
+
+              ## 422 statuses are validation responses from the service
+              ## meaning the response was successful, but the item was unprocessable
+              ## and contains validation errors.
+              ## Anything besides 422 is a true response failure.
+              if !response.success? && response.status != 422
+                return false
+              end
+
+              ## If there are validation errors, add any model validation errors from the service_response
+              if validation_errors
+                validation_errors.each do |attribute, error_array|
+                  error_array.each do |error|
+                    self.errors.add(attribute, error)
+                  end
+                end
+
+                ## Since there were validation errors, reattach to the object any associated items
+                ## that were new (non-persisted), and re-mark any that were marked for delete with _destroy
+                submitted_params[:data][:attributes].each do |key, value|
+                  ## get nested_attributes, if any
+                  matchdata = /(.*)_attributes/.match(key)
+                  if matchdata
+                    association_name = matchdata[1]
+                    # Association info is stored in a hash available from the class (associations)
+                    # The keys of the associations hash are the association types
+                    # The values of the hash are arrays of hashes
+                    # Find the key that points to the array containing the association identified by association_name
+                    association_type = self.class.associations.detect {|type, list| list.any? {|a| a[:name].to_s == association_name}}.try(:first)
+
+                    if association_type == :has_many
+                      value.each do |k, v|
+                        reapply_changes(attributes: v, association_name: association_name, association_type: association_type)
+                      end
+                    else
+                      reapply_changes(attributes: value, association_name: association_name, association_type: association_type)
+                    end
+                  end
+                end
+                ## Obj was not saved, so return false
+                return false
+              end
+
+              ## Obj was successfully saved, clear up attributes
               if self.changed_attributes.present?
                 @previously_changed = self.changed_attributes.clone
                 self.changed_attributes.clear
@@ -77,13 +138,45 @@ module Her
         method = self.class.method_for(:destroy)
         run_callbacks :destroy do
           self.class.request(params.merge(:_method => method, :_path => request_path)) do |parsed_data, response|
-            assign_attributes(self.class.parse(parsed_data[:data])) if parsed_data[:data].any?
+
+            assign_attributes(self.class.parse(parsed_data[:data])) if !parsed_data[:data].nil? && parsed_data[:data].any?
             @metadata = parsed_data[:metadata]
             @response_errors = parsed_data[:errors]
             @destroyed = true
           end
         end
         self
+      end
+
+      def reapply_changes(attributes:, association_name:, association_type:)
+        item_has_id = attributes['id'] && attributes['id'] != ''
+        item_deleted = attributes['_destroy'] == "1"
+
+        if item_has_id
+          ## Re-Apply any changes to attributes on persisted items
+          item = if association_type == :has_many
+            self.send(association_name).detect {|item| item.id.to_i == attributes['id'].to_i}
+          else
+            self.send(association_name)
+          end
+
+          if item_deleted
+            ## Re-mark items with _destroy if they were marked for deletion
+            item._destroy = true
+          else
+            ## Not deleted, re-apply attribute changes
+            item.assign_attributes(attributes)
+          end
+        elsif !item_deleted
+          ## Reattach non-persisted items
+          item = association_name.classify.constantize.send(:build)
+          item.attributes = attributes
+          if association_type == :has_many
+            self.send(association_name).send(:<<, item)
+          else
+            self.send("#{association_name}=", item)
+          end
+        end
       end
 
       module ClassMethods

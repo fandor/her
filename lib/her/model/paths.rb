@@ -46,12 +46,11 @@ module Her
         #    collection_path "/users"
         #  end
         def collection_path(path = nil)
-          if path.nil?
-            @_her_collection_path ||= root_element.to_s.pluralize
-          else
+          unless path.nil?
             @_her_collection_path = path
             @_her_resource_path = "#{path}/:id"
           end
+          @_her_collection_path ||= root_element.to_s.pluralize
         end
 
         # Defines a custom resource path for the resource

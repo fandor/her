@@ -4,6 +4,7 @@ module Her
     module Attributes
       extend ActiveSupport::Concern
 
+
       # Initialize a new object with data
       #
       # @param [Hash] attributes The attributes to initialize the object with
@@ -19,14 +20,16 @@ module Her
       #  User.new(name: "Tobias") # => #<User name="Tobias">
       def initialize(attributes={})
         attributes ||= {}
-        @metadata = attributes.delete(:_metadata) || {}
+        @metadata        = attributes.delete(:_metadata) || {}
         @response_errors = attributes.delete(:_errors) || {}
-        @destroyed = attributes.delete(:_destroyed) || false
+        @destroyed       = attributes.delete(:_destroyed) || false
 
         attributes = self.class.default_scope.apply_to(attributes)
         assign_attributes(attributes)
+
         run_callbacks :initialize
       end
+
 
       # Initialize a collection of resources
       #
@@ -43,6 +46,33 @@ module Her
         end
         Her::Collection.new(collection_data, parsed_data[:metadata], parsed_data[:errors])
       end
+
+
+      # Initialize a paginated collection of resources
+      #
+      # @private
+      def self.initialize_paginated_collection(klass, parsed_data={}, params={}, response=nil)
+        collection_data = klass.extract_array(parsed_data).map do |item_data|
+          if item_data.kind_of?(klass)
+            resource = item_data
+          else
+            resource = klass.new(klass.parse(item_data))
+            resource.run_callbacks :find
+          end
+          resource
+        end
+
+        per_page = params['page[size]'] && params['page[size]'].to_i || 20
+        current_page = params['page[number]'] && params['page[number]'].to_i || 1
+
+        Her::PaginatedCollection.new(items: collection_data,
+                                     metadata: parsed_data[:metadata],
+                                     errors: parsed_data[:errors],
+                                     links: parsed_data.links,
+                                     current_page: current_page,
+                                     per_page: per_page)
+      end
+
 
       # Use setter methods of model for each key / value pair in params
       # Return key / value pairs for which no setter method was defined on the model
@@ -71,7 +101,7 @@ module Her
       #
       # @private
       def method_missing(method, *args, &blk)
-        if method.to_s =~ /[?=]$/ || @attributes.include?(method)
+        if attribute_method?(method)
           # Extract the attribute
           attribute = method.to_s.sub(/[?=]$/, '')
 
@@ -87,7 +117,17 @@ module Her
 
       # @private
       def respond_to_missing?(method, include_private = false)
-        method.to_s.end_with?('=') || method.to_s.end_with?('?') || @attributes.include?(method) || super
+        attribute_method?(method) || super
+      end
+
+      # @private
+      def attribute_method?(method)
+        base_name = if method.to_s =~ /[?=]$/
+          method[0..-2]
+        else
+          method
+        end
+        @attributes.include?(base_name)
       end
 
       # Assign new attributes to a resource
@@ -183,12 +223,24 @@ module Her
           Her::Model::Attributes.initialize_collection(self, parsed_data)
         end
 
+
+        # Initialize a paginated collection of resources with raw data from an HTTP request
+        #
+        # @param [Array] parsed_data
+        # @private
+        def new_paginated_collection(parsed_data, params, response)
+          Her::Model::Attributes.initialize_paginated_collection(self, parsed_data, params, response)
+        end
+
+
         # Initialize a new object with the "raw" parsed_data from the parsing middleware
         #
         # @private
         def new_from_parsed_data(parsed_data)
           parsed_data = parsed_data.with_indifferent_access
-          new(parse(parsed_data[:data]).merge :_metadata => parsed_data[:metadata], :_errors => parsed_data[:errors])
+          item = new(parse(parsed_data[:data]).merge :_metadata => parsed_data[:metadata], :_errors => parsed_data[:errors])
+          item.id = nil if parsed_data[:data][:id] == ""
+          item
         end
 
         # Define attribute method matchers to automatically define them using ActiveModel's define_attribute_methods.

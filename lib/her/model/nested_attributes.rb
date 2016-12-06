@@ -24,6 +24,8 @@ module Her
           allowed_association_names = association_names
 
           associations.each do |association_name|
+            accepted_nested_attributes_associations << association_name.to_sym
+
             unless allowed_association_names.include?(association_name)
               raise Her::Errors::AssociationUnknownError.new("Unknown association name :#{association_name}")
             end
@@ -38,6 +40,14 @@ module Her
               end
             RUBY
           end
+        end
+
+        def accepted_nested_attributes_associations
+          @accepted_nested_attributes_associations ||= []
+        end
+
+        def nested_attributes_accepted_for?(name)
+          accepted_nested_attributes_associations.include?(name.to_sym)
         end
       end
     end

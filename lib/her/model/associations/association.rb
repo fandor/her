@@ -50,9 +50,19 @@ module Her
           return @cached_result unless @params.any? || @cached_result.nil?
           return @parent.attributes[@name] unless @params.any? || @parent.attributes[@name].blank?
 
-          path = build_association_path lambda { "#{@parent.request_path(@params)}#{@opts[:path]}" }
-          @klass.get(path, @params).tap do |result|
-            @cached_result = result unless @params.any?
+          if @parent.persisted?
+            path = build_association_path lambda { "#{@parent.request_path(@params)}#{@opts[:path]}" }
+            @klass.get(path, @params).tap do |result|
+              @cached_result = result unless @params.any?
+            end
+          else
+            # Association info is stored in a hash available from the class (associations)
+            # The keys of the associations hash are the association types
+            # The values of the hash are arrays of hashes
+            # Find the key that points to the array containing the association identified by @name
+            association_type = @parent.class.associations.detect {|type, list| list.any? {|a| a[:name].to_s == @name.to_s}}.try(:first)
+
+            @cached_result = association_type == :has_many ? [] : nil
           end
         end
 

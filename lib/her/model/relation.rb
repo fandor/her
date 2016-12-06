@@ -67,9 +67,19 @@ module Her
         @_fetch ||= begin
           path = @parent.build_request_path(@params)
           method = @parent.method_for(:find)
+
+          # Translate page and per_page params to params understood by the service
+          pagination_param_map = {"page" => "page[number]", "per_page" => "page[size]"}
+          @params = @params.transform_keys {|key| pagination_param_map[key.to_s] || key }
+
           @parent.request(@params.merge(:_method => method, :_path => path)) do |parsed_data, response|
-            @parent.new_collection(parsed_data)
+            if parsed_data.links.nil? # No links means no pagination
+              @parent.new_collection(parsed_data)
+            else
+              @parent.new_paginated_collection(parsed_data, @params, response)
+            end
           end
+
         end
       end
 

@@ -19,7 +19,14 @@ module Her
               cached_name = :"@_her_association_#{name}"
 
               cached_data = (instance_variable_defined?(cached_name) && instance_variable_get(cached_name))
-              cached_data || instance_variable_set(cached_name, Her::Model::Associations::HasOneAssociation.proxy(self, #{opts.inspect}))
+              cached_data || instance_variable_set(cached_name, Her::Model::Associations::Association.new(self, #{opts.inspect}).fetch)
+            end
+
+            def #{name}=(value)
+              raise "AssociationTypeMismatch: #{opts[:class_name]} expected, got \#{value.class.name}" unless #{!!opts[:polymorphic]} || value.class.name == "#{opts[:class_name]}"
+              cached_name = :"@_her_association_#{name}"
+
+              instance_variable_set(cached_name, value)
             end
           RUBY
         end
