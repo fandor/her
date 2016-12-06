@@ -172,9 +172,7 @@ module Her
           item = association_name.classify.constantize.send(:build)
           item.attributes = attributes
           if association_type == :has_many
-            assoc = self.send(association_name)
-            # assoc.send(:<<, item)
-            assoc << item
+            self.send(association_name).send(:<<, item)
           else
             self.send("#{association_name}=", item)
           end
